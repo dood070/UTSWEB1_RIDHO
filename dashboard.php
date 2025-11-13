@@ -27,7 +27,16 @@ foreach ($pilih_index as $idx) {
     $belanja[] = [$barang[0], $barang[1], $barang[2], $jumlah, $subtotal];
     $grandtotal += $subtotal;
 }
+
+$diskon = 0;
+if ($grandtotal > 100000) {
+    $diskon = 0.10 * $grandtotal; // Diskon 10%
+}
+$total_akhir = $grandtotal - $diskon;
+
 ?>
+
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -166,10 +175,22 @@ foreach ($pilih_index as $idx) {
         <?php endforeach; ?>
       </tbody>
       <tfoot>
-        <tr>
-          <td colspan="4">Total Belanja</td>
-          <td class="total-value">Rp <?= number_format($grandtotal, 0, ',', '.'); ?></td>
-        </tr>
+  <tr>
+    <td colspan="4">Total Belanja</td>
+    <td class="total-value">Rp <?= number_format($grandtotal, 0, ',', '.'); ?></td>
+  </tr>
+
+  <tr>
+    <td colspan="4">Diskon (10%)</td>
+    <td class="total-value">Rp <?= number_format($diskon, 0, ',', '.'); ?></td>
+  </tr>
+
+  <tr>
+    <td colspan="4">Total Akhir</td>
+    <td class="total-value"><strong>Rp <?= number_format($total_akhir, 0, ',', '.'); ?></strong></td>
+  </tr>
+</tfoot>
+
       </tfoot>
     </table>
   </main>
