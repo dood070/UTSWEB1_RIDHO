@@ -1,55 +1,18 @@
 <?php
-// Pastikan session dimulai di awal skrip
-session_start();
 
-// Inisialisasi atau Reset Daftar Belanja di Session
-if (!isset($_SESSION['belanja'])) {
-    $_SESSION['belanja'] = [];
-}
+$barang_list = [
+    ["K001", "Semangka", 35000],
+    ["K002", "Nanas", 25000],
+    ["K003", "Pisang", 20000],
+    ["K004", "Alpukat", 21000],
+    ["K005", "Jeruk", 22000],
+];
 
-// 1. Logika Hapus Keranjang
-if (isset($_POST['action']) && $_POST['action'] == 'clear') {
-    $_SESSION['belanja'] = [];
-    // Redirect untuk menghindari pengiriman ulang form saat refresh
-    header("Location: " . $_SERVER['PHP_SELF']);
-    exit();
-}
-
-// 2. Logika Tambah Barang (Diproses saat formulir dikirim)
-if (isset($_POST['action']) && $_POST['action'] == 'add') {
-    $kode = filter_input(INPUT_POST, 'kode_barang', FILTER_SANITIZE_STRING);
-    $nama = filter_input(INPUT_POST, 'nama_barang', FILTER_SANITIZE_STRING);
-    $harga = filter_input(INPUT_POST, 'harga', FILTER_VALIDATE_INT);
-    $jumlah = filter_input(INPUT_POST, 'jumlah', FILTER_VALIDATE_INT);
-
-    // Validasi dasar
-    if ($kode && $nama && $harga > 0 && $jumlah > 0) {
-        $subtotal = $harga * $jumlah;
-        // Tambahkan item ke session belanja
-        $_SESSION['belanja'][] = [
-            $kode,      // 0: Kode
-            $nama,      // 1: Nama
-            $harga,     // 2: Harga Satuan
-            $jumlah,    // 3: Jumlah
-            $subtotal   // 4: Subtotal
-        ];
-    }
-    // Redirect untuk menghindari pengiriman ulang form saat refresh
-    header("Location: " . $_SERVER['PHP_SELF']);
-    exit();
-}
-
-// --- Logika Perhitungan Total (Dijalankan setiap load) ---
-$grandtotal = 0;
-foreach ($_SESSION['belanja'] as $item) {
-    $grandtotal += $item[4];
-}
-
-$diskon = 0;
-if ($grandtotal > 100000) {
-    $diskon = $grandtotal * 0.10;
-}
-$total_akhir = $grandtotal - $diskon;
+// DATA PEMBELIAN AWAL DIBUAT KOSONG DAN TOTAL DISET KE NOL
+$belanja_awal = [];
+$grandtotal_awal = 0;
+$diskon_awal = 0;
+$total_akhir_awal = 0;
 
 
 // Format angka ke Rupiah
@@ -75,7 +38,7 @@ function get_diskon_text($diskon_amount, $grandtotal) {
     <title>POLGAN MART - Sistem Penjualan Sederhana</title>
     <link href='https://fonts.googleapis.com/css?family=Poppins' rel='stylesheet'>
     <style>
-        /* CSS Dibiarkan sama */
+        /* --- CSS (Sama seperti sebelumnya) --- */
         * {
             box-sizing: border-box;
             font-family: 'Poppins', sans-serif;
@@ -158,7 +121,6 @@ function get_diskon_text($diskon_amount, $grandtotal) {
             font-weight: 500;
             margin-bottom: 5px;
         }
-        /* Menggunakan name attribute untuk form submission */
         .form-group input {
             width: 100%;
             padding: 10px;
@@ -255,7 +217,6 @@ function get_diskon_text($diskon_amount, $grandtotal) {
             margin-top: 15px;
             padding-left: 0;
             text-decoration: none;
-            /* Diubah menjadi tombol submit untuk form */
         }
     </style>
 </head>
@@ -276,31 +237,28 @@ function get_diskon_text($diskon_amount, $grandtotal) {
     </header>
 
     <main class="content">
-        <form method="POST" action="">
-            <div class="input-form">
-                <input type="hidden" name="action" value="add">
-                <div class="form-group">
-                    <label for="kode_barang">Kode Barang</label>
-                    <input type="text" id="kode_barang" name="kode_barang" placeholder="Masukkan Kode Barang" required>
-                </div>
-                <div class="form-group">
-                    <label for="nama_barang">Nama Barang</label>
-                    <input type="text" id="nama_barang" name="nama_barang" placeholder="Masukkan Nama Barang" required>
-                </div>
-                <div class="form-group">
-                    <label for="harga">Harga</label>
-                    <input type="number" id="harga" name="harga" placeholder="Masukkan Harga" step="1000" min="0" required>
-                </div>
-                <div class="form-group">
-                    <label for="jumlah">Jumlah</label>
-                    <input type="number" id="jumlah" name="jumlah" placeholder="Masukkan Jumlah" min="1" required>
-                </div>
-                <div class="actions">
-                    <button class="btn btn-primary" type="submit">Tambahkan</button>
-                    <button class="btn btn-secondary" type="reset">Batal</button>
-                </div>
+        <div class="input-form">
+            <div class="form-group">
+                <label for="kode_barang">Kode Barang</label>
+                <input type="text" id="kode_barang" placeholder="Masukkan Kode Barang">
             </div>
-        </form>
+            <div class="form-group">
+                <label for="nama_barang">Nama Barang</label>
+                <input type="text" id="nama_barang" placeholder="Masukkan Nama Barang">
+            </div>
+            <div class="form-group">
+                <label for="harga">Harga</label>
+                <input type="number" id="harga" placeholder="Masukkan Harga" step="1000" min="0">
+            </div>
+            <div class="form-group">
+                <label for="jumlah">Jumlah</label>
+                <input type="number" id="jumlah" placeholder="Masukkan Jumlah" min="1">
+            </div>
+            <div class="actions">
+                <button class="btn btn-primary" id="btn-tambah">Tambahkan</button>
+                <button class="btn btn-secondary" id="btn-batal">Batal</button>
+            </div>
+        </div>
 
         <h3 class="list-title">Daftar Pembelian</h3>
 
@@ -315,7 +273,7 @@ function get_diskon_text($diskon_amount, $grandtotal) {
                 </tr>
             </thead>
             <tbody id="daftar-pembelian-body">
-                <?php foreach ($_SESSION['belanja'] as $item): ?>
+                <?php foreach ($belanja_awal as $item): ?>
                 <tr data-subtotal="<?= $item[4]; ?>">
                     <td><?= $item[0]; ?></td>
                     <td><?= $item[1]; ?></td>
@@ -330,27 +288,159 @@ function get_diskon_text($diskon_amount, $grandtotal) {
         <table class="table-summary">
             <tr>
                 <td class="summary-label">Total Belanja</td>
-                <td class="summary-value" id="total-belanja-value"><?= format_rupiah($grandtotal); ?></td>
+                <td class="summary-value" id="total-belanja-value"><?= format_rupiah($grandtotal_awal); ?></td>
             </tr>
 
             <tr>
                 <td class="summary-label">Diskon</td>
-                <td class="summary-value" id="diskon-value"><?= get_diskon_text($diskon, $grandtotal); ?></td>
+                <td class="summary-value" id="diskon-value"><?= get_diskon_text($diskon_awal, $grandtotal_awal); ?></td>
             </tr>
 
             <tr>
                 <td class="summary-label">Total Bayar</td>
-                <td class="summary-value total-pay-value" id="total-bayar-value">**<?= format_rupiah($total_akhir); ?>**</td>
+                <td class="summary-value total-pay-value" id="total-bayar-value">**<?= format_rupiah($total_akhir_awal); ?>**</td>
             </tr>
         </table>
 
         <div style="margin-top: 15px;">
-            <form method="POST" action="">
-                <input type="hidden" name="action" value="clear">
-                <button class="btn empty-cart-btn" type="submit">Kosongkan Keranjang</button>
-            </form>
+             <button class="btn empty-cart-btn" id="btn-kosongkan">Kosongkan Keranjang</button>
         </div>
     </main>
 
-    </body>
+    <script>
+        // --- Bagian JavaScript untuk Interaktivitas ---
+        document.addEventListener('DOMContentLoaded', function() {
+            // 1. Ambil semua elemen yang dibutuhkan
+            const kodeInput = document.getElementById('kode_barang');
+            const namaInput = document.getElementById('nama_barang');
+            const hargaInput = document.getElementById('harga');
+            const jumlahInput = document.getElementById('jumlah');
+            const btnTambah = document.getElementById('btn-tambah');
+            const btnBatal = document.getElementById('btn-batal');
+            const btnKosongkan = document.getElementById('btn-kosongkan');
+            const daftarBody = document.getElementById('daftar-pembelian-body');
+            const totalBelanjaEl = document.getElementById('total-belanja-value');
+            const diskonEl = document.getElementById('diskon-value');
+            const totalBayarEl = document.getElementById('total-bayar-value');
+
+            // 2. Data Barang (Digunakan untuk Autocomplete/Validasi)
+            const barangReferensi = <?= json_encode($barang_list); ?>;
+
+            // 3. Fungsi Utility
+            const formatRupiah = (angka) => {
+                return "Rp " + new Intl.NumberFormat('id-ID').format(angka);
+            };
+
+            const calculateDiscount = (total) => {
+                // Diskon 10% jika total > Rp 100.000
+                if (total > 100000) {
+                    const diskon = total * 0.10;
+                    return { diskon: diskon, persen: 10 };
+                }
+                return { diskon: 0, persen: 0 };
+            };
+
+            const getDiskonText = (diskon, persen) => {
+                if (diskon === 0) return formatRupiah(0);
+                return formatRupiah(diskon) + (persen > 0 ? ` (${persen}%)` : "");
+            };
+
+            const hitungUlangTotal = () => {
+                let grandTotal = 0;
+                // Ambil semua baris di tabel dan tambahkan subtotalnya
+                daftarBody.querySelectorAll('tr').forEach(row => {
+                    const subtotalAttr = row.getAttribute('data-subtotal');
+                    if(subtotalAttr) {
+                        grandTotal += parseInt(subtotalAttr);
+                    }
+                });
+
+                const { diskon, persen } = calculateDiscount(grandTotal);
+                const totalAkhir = grandTotal - diskon;
+
+                // Perbarui tampilan
+                totalBelanjaEl.textContent = formatRupiah(grandTotal);
+                diskonEl.textContent = getDiskonText(diskon, persen);
+                totalBayarEl.innerHTML = `**${formatRupiah(totalAkhir)}**`;
+            };
+            
+            // Panggil hitungUlangTotal untuk memastikan total awal benar (Rp 0)
+            // Ini tetap diperlukan untuk menyinkronkan tampilan meskipun PHP sudah mengesetnya ke 0
+            hitungUlangTotal();
+
+
+            // 4. Event Listener Tombol "Tambahkan"
+            btnTambah.addEventListener('click', function() {
+                const kode = kodeInput.value.trim();
+                const nama = namaInput.value.trim();
+                const harga = parseInt(hargaInput.value) || 0;
+                const jumlah = parseInt(jumlahInput.value) || 0;
+
+                // Validasi Input
+                if (!kode || !nama || harga <= 0 || jumlah <= 0) {
+                    alert('Mohon lengkapi data barang dengan benar!');
+                    return;
+                }
+
+                const subtotal = harga * jumlah;
+
+                // Buat baris baru untuk tabel
+                const newRow = document.createElement('tr');
+                newRow.setAttribute('data-subtotal', subtotal);
+                newRow.innerHTML = `
+                    <td>${kode}</td>
+                    <td>${nama}</td>
+                    <td class="harga-satuan" data-harga="${harga}">${formatRupiah(harga)}</td>
+                    <td>${jumlah}</td>
+                    <td class="subtotal-item" style="text-align: right;">${formatRupiah(subtotal)}</td>
+                `;
+
+                // Masukkan baris baru ke tabel
+                daftarBody.appendChild(newRow);
+
+                // Hitung ulang total belanja
+                hitungUlangTotal();
+
+                // Kosongkan input
+                clearInputs();
+            });
+
+            // 5. Event Listener Tombol "Batal"
+            btnBatal.addEventListener('click', function() {
+                clearInputs();
+            });
+
+            const clearInputs = () => {
+                kodeInput.value = '';
+                namaInput.value = '';
+                hargaInput.value = '';
+                jumlahInput.value = '';
+                kodeInput.focus(); 
+            };
+
+            // 6. Event Listener Tombol "Kosongkan Keranjang"
+            btnKosongkan.addEventListener('click', function() {
+                if (confirm("Anda yakin ingin mengosongkan keranjang pembelian?")) {
+                    daftarBody.innerHTML = ''; // Hapus semua baris
+                    hitungUlangTotal(); // Hitung ulang total (akan menjadi Rp 0)
+                }
+            });
+
+            // OPTIONAL: Fitur Autocomplete Sederhana berdasarkan Kode
+            kodeInput.addEventListener('change', function() {
+                const kodeCari = kodeInput.value.trim();
+                const item = barangReferensi.find(b => b[0] === kodeCari);
+
+                if (item) {
+                    namaInput.value = item[1];
+                    hargaInput.value = item[2];
+                    jumlahInput.focus();
+                } else {
+                    namaInput.value = '';
+                    hargaInput.value = '';
+                }
+            });
+        });
+    </script>
+</body>
 </html>
